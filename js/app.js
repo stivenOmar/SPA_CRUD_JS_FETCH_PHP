@@ -1,7 +1,6 @@
 var Gestionador = /** @class */ (function () {
     function Gestionador() {
         this.vista = new Vista("contenedorApp");
-        this.clientes = [];
     }
     Gestionador.prototype.guardar = function (cliente) {
         var _this = this;
@@ -16,12 +15,11 @@ var Gestionador = /** @class */ (function () {
             if (response.proceso) {
                 _this.mostrarNotificacion('exito', response.mensaje);
                 _this.vista.mostrarEn("#datosClientes", cliente.modeloInterfaz());
-                Vista.elementoHTMLConId("datos").reset();
-                _this.clientes.push(cliente);
             }
             else {
                 _this.mostrarNotificacion('error', response.mensaje);
             }
+            Vista.elementoHTMLConId("datos").reset();
         })["catch"](function (error) {
             _this.mostrarNotificacion('error', "No se puede acceder a servidor");
         });
@@ -37,6 +35,19 @@ var Gestionador = /** @class */ (function () {
     };
     Gestionador.prototype.buscar = function () {
     };
+    Gestionador.prototype.listar = function () {
+        var _this = this;
+        fetch('./php/lista.php', {
+            method: 'GET'
+        }).then(function (resolve) { return resolve.json(); })
+            .then(function (response) {
+            response.forEach(function (cliente) {
+                _this.vista.mostrarEn('#datosClientes', new Cliente(cliente.cedula, cliente.nombre, cliente.direccion, cliente.telefono, cliente.email).modeloInterfaz());
+            });
+        })["catch"](function (error) {
+            console.log(error);
+        });
+    };
     return Gestionador;
 }());
 var Cliente = /** @class */ (function () {
@@ -48,7 +59,7 @@ var Cliente = /** @class */ (function () {
         this.email = email;
     }
     Cliente.prototype.modeloInterfaz = function () {
-        return " <tr>\n        <td>" + this.cedula + "</td>\n        <td>" + this.nombres + "</td>\n        <td>" + this.direccion + "</td>\n        <td>" + this.telefono + "</td>\n        <td>" + this.email + "</td>\n        <td><i class=\"material-icons\">edit</i> <i class=\"material-icons\">delete</i></td>\n      </tr>";
+        return "<tr>\n        <td>" + this.cedula + "</td>\n        <td>" + this.nombres + "</td>\n        <td>" + this.direccion + "</td>\n        <td>" + this.telefono + "</td>\n        <td>" + this.email + "</td>\n        <td><i class=\"material-icons iconOperacion editar\">edit</i> <i class=\"red-text material-icons iconOperacion eliminar\">delete</i></td>\n      </tr>";
     };
     Cliente.prototype.json = function () {
         var cliente = {
@@ -113,15 +124,19 @@ var Vista = /** @class */ (function () {
     };
     return Vista;
 }());
-var form = document.getElementById("datos");
-var gestionador = new Gestionador();
-form.addEventListener("submit", guardar);
-function guardar(event) {
-    event.preventDefault();
-    var cedula = document.getElementById("cedula").value.toString();
-    var nombres = document.getElementById("nombres").value.toString();
-    var direccion = document.getElementById("direccion").value.toString();
-    var telefono = document.getElementById("telefono").value.toString();
-    var email = document.getElementById("email").value.toString();
-    gestionador.guardar(new Cliente(cedula, nombres, direccion, telefono, email));
+document.addEventListener('DOMContentLoaded', cargarClientes);
+function cargarClientes() {
+    var gestionador = new Gestionador();
+    gestionador.listar();
+    var form = document.getElementById("datos");
+    form.addEventListener("submit", guardar);
+    function guardar(event) {
+        event.preventDefault();
+        var cedula = document.getElementById("cedula").value.toString();
+        var nombres = document.getElementById("nombres").value.toString();
+        var direccion = document.getElementById("direccion").value.toString();
+        var telefono = document.getElementById("telefono").value.toString();
+        var email = document.getElementById("email").value.toString();
+        gestionador.guardar(new Cliente(cedula, nombres, direccion, telefono, email));
+    }
 }

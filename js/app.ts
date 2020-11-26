@@ -1,6 +1,5 @@
 class Gestionador {
     private vista: Vista = new Vista("contenedorApp");
-    private clientes: Cliente[] = [];
 
     public guardar(cliente: Cliente):void{
         fetch('./php/guardar.php',{
@@ -14,11 +13,10 @@ class Gestionador {
             if(response.proceso){
                 this.mostrarNotificacion('exito', response.mensaje)
                 this.vista.mostrarEn("#datosClientes",cliente.modeloInterfaz());
-                Vista.elementoHTMLConId("datos").reset();
-                this.clientes.push(cliente);
             }else {
                 this.mostrarNotificacion('error',response.mensaje);
             }
+            Vista.elementoHTMLConId("datos").reset();
         }).catch(error=>{
             this.mostrarNotificacion('error',"No se puede acceder a servidor");
         })
@@ -41,6 +39,20 @@ class Gestionador {
     public buscar():void{
 
     }
+
+    public listar():void{
+        fetch('./php/lista.php',{
+            method: 'GET'
+        }).then(resolve=>{return resolve.json()})
+        .then(response => {
+            response.forEach(cliente => {
+                this.vista.mostrarEn('#datosClientes',new Cliente(cliente.cedula, cliente.nombre, cliente.direccion,
+                    cliente.telefono, cliente.email).modeloInterfaz()); 
+            });
+        }).catch(error=>{
+            console.log(error);
+        })
+    }
 }
 
 class Cliente{
@@ -60,13 +72,13 @@ class Cliente{
     }
 
     public modeloInterfaz(): string{
-        return ` <tr>
+        return `<tr>
         <td>${this.cedula}</td>
         <td>${this.nombres}</td>
         <td>${this.direccion}</td>
         <td>${this.telefono}</td>
         <td>${this.email}</td>
-        <td><i class="material-icons">edit</i> <i class="material-icons">delete</i></td>
+        <td><i class="material-icons iconOperacion editar">edit</i> <i class="red-text material-icons iconOperacion eliminar">delete</i></td>
       </tr>`
     }
 
@@ -157,18 +169,25 @@ class Vista{
 
 }
 
-let form : HTMLElement = document.getElementById("datos");
 
-let gestionador : Gestionador  = new Gestionador();
 
-form.addEventListener("submit",guardar);
+document.addEventListener('DOMContentLoaded',cargarClientes);
 
-function guardar(event){
-    event.preventDefault();
-    let cedula : string = document.getElementById("cedula").value.toString();
-    let nombres : string = document.getElementById("nombres").value.toString();
-    let direccion : string = document.getElementById("direccion").value.toString();
-    let telefono: string = document.getElementById("telefono").value.toString();
-    let email: string = document.getElementById("email").value.toString();
-    gestionador.guardar(new Cliente(cedula, nombres, direccion, telefono, email));
+function cargarClientes(){
+    let gestionador : Gestionador  = new Gestionador();
+    gestionador.listar();
+
+    let form : HTMLElement = document.getElementById("datos");
+
+    form.addEventListener("submit",guardar);
+
+    function guardar(event){
+        event.preventDefault();
+        let cedula : string = document.getElementById("cedula").value.toString();
+        let nombres : string = document.getElementById("nombres").value.toString();
+        let direccion : string = document.getElementById("direccion").value.toString();
+        let telefono: string = document.getElementById("telefono").value.toString();
+        let email: string = document.getElementById("email").value.toString();
+        gestionador.guardar(new Cliente(cedula, nombres, direccion, telefono, email));
+    }
 }
