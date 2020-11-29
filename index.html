@@ -25,8 +25,8 @@
                 <div class="row">
                   <div class="input-field col s12 m12">
                     <i class="material-icons prefix">account_circle</i>
-                    <input id="cedula" type="number" class="validate" required>
-                    <label for="cedula">Cedula cliente</label>
+                    <input  id="cedula" type="number" class="validate" required>
+                    <label for="cedula" id="lcedula">Cedula cliente</label>
                   </div>
                   <div class="input-field col s12 m12">
                     <i class="material-icons prefix">edit</i>
@@ -50,7 +50,7 @@
                   </div>
                 </div>
                 <div class="row center-align">
-                    <button class="btn waves-effect waves-light grey darken-3" type="submit" id="btnGuardar" >Submit
+                    <button class="btn waves-effect waves-light grey darken-3" type="submit" id="btnGuardar" >Guardar
                         <i class="material-icons right">send</i>
                     </button>
                 </div>
@@ -70,7 +70,7 @@
                         <div class="nav-wrapper white ">
                           <form>
                             <div class="input-field">
-                              <input id="search" type="search" placeholder="ingrese nombre para buscar" required>
+                              <input id="search" type="search" placeholder="ingrese nombre o cedula para buscar" required>
                               <label class="label-icon" for="search"><i class="material-icons grey-text darken-3">search</i></label>
                               <i class="material-icons">close</i>
                             </div>
@@ -80,7 +80,7 @@
                 </div>
             </div>
             <div class="row">
-                <table class="responsive-table bordered ">
+                <table class="responsive-table bordered " id="tablaClientes">
                     <thead>
                       <tr>
                           <th>Cedula</th>

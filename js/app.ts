@@ -28,6 +28,13 @@ class Gestionador {
         this.vista.eliminarConTime(3000,'#tarjetaNotificacion');
     }
 
+    private crearContenedor():void {
+        this.vista.eliminarConQuery('#datosClientes');
+        let datosClientes = document.createElement('tbody');
+        datosClientes.setAttribute('id', 'datosClientes');
+        document.getElementById('tablaClientes').appendChild(datosClientes);
+    }
+
     public eliminar():void {
 
     }
@@ -36,8 +43,47 @@ class Gestionador {
         
     }
 
-    public buscar():void{
+    public buscar(condicionBusqueda:any):void{
+        if(condicionBusqueda !== ""){
+            let dato: string = "cedula";
+            if(isNaN(condicionBusqueda)){
+                dato = "nombre";
+            }
+            fetch("./php/buscar.php",{
+                method : 'POST',
+                body : JSON.stringify({
+                    'condicion' : condicionBusqueda,
+                    'dato' : `${dato}`
+                }),
+                headers : {
+                    'Content-Type' : 'application/json'
+                }
+            }).then(resolve => {return resolve.json()})
+            .then((response)=>{
+                if(response[0].proceso){
+                    this.crearContenedor();
+                    if(response[0].respuesta.length !=0){
+                        response[0].respuesta.forEach(cliente => {
+                            this.vista.mostrarEn('#datosClientes',new Cliente(cliente.cedula, cliente.nombre, cliente.direccion,
+                                cliente.telefono, cliente.email).modeloInterfaz()); 
+                        });
+                    }else{
+                        this.vista.mostrarEn('#datosClientes',`<tr>
+                        <td colspan="6" class="center-align">No hay coincidencias</td>
+                      </tr>`);
+                    }
+                }else{
+                    this.mostrarNotificacion('error',response);
+                }                
+            })
+            .catch((error)=>{
+                this.mostrarNotificacion('error','error al cosultar');
+            });
 
+        }else{
+            this.crearContenedor();
+            this.listar();
+        }
     }
 
     public listar():void{
@@ -50,7 +96,7 @@ class Gestionador {
                     cliente.telefono, cliente.email).modeloInterfaz()); 
             });
         }).catch(error=>{
-            console.log(error);
+            this.mostrarNotificacion("error","error conexion con servidor")
         })
     }
 }
@@ -117,6 +163,7 @@ class Notificacion {
 
     public modeloInterfaz():string{
         if(!this.esSatisfactorio()){
+            console.log(document.getElementsByTagName('i')[3]);
             this.icono = "warning";
             this.fondo = "orange darken-2";
             this.tituloMensaje = "Error : "
@@ -190,4 +237,11 @@ function cargarClientes(){
         let email: string = document.getElementById("email").value.toString();
         gestionador.guardar(new Cliente(cedula, nombres, direccion, telefono, email));
     }
+
+    let cedula = document.getElementById("search");
+
+    cedula.addEventListener("keyup",()=>{
+        gestionador.buscar(cedula.value);
+    })
 }
+
