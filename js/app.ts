@@ -35,12 +35,91 @@ class Gestionador {
         document.getElementById('tablaClientes').appendChild(datosClientes);
     }
 
-    public eliminar():void {
-
+    public eliminar(cedula : string):void {
+        fetch('./php/eliminar.php',{
+            method: "POST",
+            body: JSON.stringify(cedula),
+            headers: {
+                'Content-type' : 'application/json'
+            }
+        }).then(resolve => {return resolve.json()})
+        .then(response=>{
+            if(response[0].proceso){
+                this.mostrarNotificacion('exito',response[0].respuesta);
+                Vista.elementoHTMLConQuery(`[data-ced = '${cedula}`).parentElement.remove();
+            }else{
+                this.mostrarNotificacion('error',response[0].respuesta);
+            }
+        }).catch(error =>{
+            this.mostrarNotificacion('error','Error del servidor');
+        })
     }
 
-    public editar():void{
-        
+    public editar(cliente: Cliente):void{
+        fetch('./php/editar.php',{
+            method:'POST',
+            body: cliente.json(),
+            headers: {
+                'Content-type' : 'application/json'
+            }
+        }).then(resolve => {return resolve.json()})
+        .then(response => {
+            if(response){
+                document.querySelector(`[data-ced = '${response[0].respuesta[0].cedula}' ]`).parentElement.remove();
+                let cliente = response[0].respuesta[0];
+                this.vista.mostrarEn('#datosClientes', new Cliente(cliente.cedula, 
+                cliente.nombre, cliente.direccion, cliente.telefono, cliente.email).modeloInterfaz());
+                this.mostrarNotificacion('exito','Datos editados correctamente');
+                Vista.elementoHTMLConId('datos').reset();
+                let btnGuardar = Vista.elementoHTMLConId('btnGuardar');
+                btnGuardar.innerHTML = `Guardar
+                <i class="material-icons right">send</i>`;
+                btnGuardar.attributes[3].value = "1";
+                Vista.elementoHTMLConId('cedula').disabled = false;
+
+            }else{
+                this.mostrarNotificacion('error',response.respuesta);
+            }
+        })
+        .catch(error=>{
+            this.mostrarNotificacion('error',"Error de conexiòn con el servidor");
+        })
+    }
+
+    public obtenerCliente(cedula: string){
+        Vista.elementoHTMLConId('btnGuardar').textContent = "Editar";
+        fetch('./php/consultar.php',{
+            method:'POST',
+            body: JSON.stringify({'cedula_cli':`${cedula}`}),
+            headers: {
+                'Content-type' : 'application/json'
+            }
+        }).then(resolve=>{return resolve.json()})
+        .then(response => {
+            if(response[0].proceso){
+                let cliente = response[0].respuesta[0];
+                this.mostrarContenidoEnInputs(cliente);
+            }else{
+                this.mostrarNotificacion('error',response[0].respuesta);
+            }
+        })
+        .catch(error => {this.mostrarNotificacion('error','error de conexion con servidor');})
+    }
+
+    
+    private mostrarContenidoEnInputs(cliente : Object):void{
+        let label : HTMLElement;
+        let input: HTMLElement;
+        for (const propiedad in cliente) {
+            input = Vista.elementoHTMLConId(`${propiedad}`);
+            if(propiedad == "cedula"){
+                input.disabled = true;
+            }
+            input.value = cliente[propiedad];
+            label = Vista.elementoHTMLConQuery(`[for='${propiedad}']`);
+            label.setAttribute('class','active');
+        };
+
     }
 
     public buscar(condicionBusqueda:any):void{
@@ -124,7 +203,7 @@ class Cliente{
         <td>${this.direccion}</td>
         <td>${this.telefono}</td>
         <td>${this.email}</td>
-        <td><i class="material-icons iconOperacion editar">edit</i> <i class="red-text material-icons iconOperacion eliminar">delete</i></td>
+        <td data-ced = "${this.cedula}"><i class="material-icons iconOperacion editar">edit</i> <i class="red-text material-icons iconOperacion eliminar">delete</i></td>
       </tr>`
     }
 
@@ -163,7 +242,6 @@ class Notificacion {
 
     public modeloInterfaz():string{
         if(!this.esSatisfactorio()){
-            console.log(document.getElementsByTagName('i')[3]);
             this.icono = "warning";
             this.fondo = "orange darken-2";
             this.tituloMensaje = "Error : "
@@ -226,22 +304,42 @@ function cargarClientes(){
 
     let form : HTMLElement = document.getElementById("datos");
 
-    form.addEventListener("submit",guardar);
-
-    function guardar(event){
+    form.addEventListener("submit",enviarDatos);
+    //1 = guardar cliente
+    //2 = editar cliente
+    function enviarDatos(event){
         event.preventDefault();
         let cedula : string = document.getElementById("cedula").value.toString();
-        let nombres : string = document.getElementById("nombres").value.toString();
+        let nombres : string = document.getElementById("nombre").value.toString();
         let direccion : string = document.getElementById("direccion").value.toString();
         let telefono: string = document.getElementById("telefono").value.toString();
         let email: string = document.getElementById("email").value.toString();
-        gestionador.guardar(new Cliente(cedula, nombres, direccion, telefono, email));
+        if(Vista.elementoHTMLConId("btnGuardar").dataset.proceso == "1"){
+            gestionador.guardar(new Cliente(cedula, nombres, direccion, telefono, email));
+        }else{
+            gestionador.editar(new Cliente(cedula,nombres, direccion,telefono,email));
+        }
     }
 
     let cedula = document.getElementById("search");
+    let dataCedula : string;
 
     cedula.addEventListener("keyup",()=>{
         gestionador.buscar(cedula.value);
+    })
+
+    function cambiarDataProceso(valor : string):void{
+        Vista.elementoHTMLConId("btnGuardar").dataset.proceso = valor;
+    }
+
+    document.getElementById("tablaClientes").addEventListener('click',(event)=>{
+        const elemento = event.target;
+        if(elemento.classList.contains('editar')){
+            cambiarDataProceso("2");
+            gestionador.obtenerCliente(elemento.parentElement.dataset.ced);
+        }else if(elemento.classList.contains('eliminar')){
+            gestionador.eliminar(elemento.parentElement.dataset.ced);
+        }
     })
 }
 
