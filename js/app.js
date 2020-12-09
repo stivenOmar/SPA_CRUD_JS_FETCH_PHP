@@ -198,7 +198,7 @@ var Cliente = /** @class */ (function () {
                     var arrayImpar = [];
                     var arrayPar = [];
                     for (var index = 1; index <= arrayCedula.length - 1; index += 2) {
-                        if (index = 9) {
+                        if (index != 9) {
                             arrayPar.push(parseInt(arrayCedula[index]));
                         }
                         arrayImpar.push(parseInt(arrayCedula[index - 1]));
