@@ -2,27 +2,33 @@ var Gestionador = /** @class */ (function () {
     function Gestionador() {
         this.vista = new Vista("contenedorApp");
     }
-    Gestionador.prototype.guardar = function (cliente) {
+    Gestionador.prototype.guardar = function (cedula, nombres, direccion, telefono, email) {
         var _this = this;
-        fetch('./php/guardar.php', {
-            method: 'POST',
-            body: cliente.json(),
-            headers: {
-                'Content-type': 'aplication/json'
-            }
-        }).then(function (resolve) { return resolve.json(); })
-            .then(function (response) {
-            if (response.proceso) {
-                _this.mostrarNotificacion('exito', response.mensaje);
-                _this.vista.mostrarEn("#datosClientes", cliente.modeloInterfaz());
-            }
-            else {
-                _this.mostrarNotificacion('error', response.mensaje);
-            }
-            Vista.elementoHTMLConId("datos").reset();
-        })["catch"](function (error) {
-            _this.mostrarNotificacion('error', "No se puede acceder a servidor");
-        });
+        if (Cliente.cedulaValida(cedula)) {
+            var cliente_1 = new Cliente(cedula, nombres, direccion, telefono, email);
+            fetch('./php/guardar.php', {
+                method: 'POST',
+                body: cliente_1.json(),
+                headers: {
+                    'Content-type': 'aplication/json'
+                }
+            }).then(function (resolve) { return resolve.json(); })
+                .then(function (response) {
+                if (response.proceso) {
+                    _this.mostrarNotificacion('exito', response.mensaje);
+                    _this.vista.mostrarEn("#datosClientes", cliente_1.modeloInterfaz());
+                }
+                else {
+                    _this.mostrarNotificacion('error', response.mensaje);
+                }
+                Vista.elementoHTMLConId("datos").reset();
+            })["catch"](function (error) {
+                _this.mostrarNotificacion('error', "No se puede acceder a servidor");
+            });
+        }
+        else {
+            this.mostrarNotificacion('error', "Cedula invalida");
+        }
     };
     Gestionador.prototype.mostrarNotificacion = function (tipo, mensaje) {
         var notificacion = new Notificacion(tipo, mensaje);
@@ -68,8 +74,8 @@ var Gestionador = /** @class */ (function () {
             .then(function (response) {
             if (response) {
                 document.querySelector("[data-ced = '" + response[0].respuesta[0].cedula + "' ]").parentElement.remove();
-                var cliente_1 = response[0].respuesta[0];
-                _this.vista.mostrarEn('#datosClientes', new Cliente(cliente_1.cedula, cliente_1.nombre, cliente_1.direccion, cliente_1.telefono, cliente_1.email).modeloInterfaz());
+                var cliente_2 = response[0].respuesta[0];
+                _this.vista.mostrarEn('#datosClientes', new Cliente(cliente_2.cedula, cliente_2.nombre, cliente_2.direccion, cliente_2.telefono, cliente_2.email).modeloInterfaz());
                 _this.mostrarNotificacion('exito', 'Datos editados correctamente');
                 Vista.elementoHTMLConId('datos').reset();
                 var btnGuardar = Vista.elementoHTMLConId('btnGuardar');
@@ -182,6 +188,51 @@ var Cliente = /** @class */ (function () {
         this.telefono = telefono;
         this.email = email;
     }
+    Cliente.cedulaValida = function (cedula) {
+        var arrayCedula = cedula.split("");
+        var valida = false;
+        if (arrayCedula.length == 10) {
+            var codigoProvincia = parseInt(arrayCedula[0]) * 10 + parseInt(arrayCedula[1]);
+            if (codigoProvincia >= 1 && codigoProvincia <= 24) {
+                if (parseInt(arrayCedula[2]) >= 0 && parseInt(arrayCedula[2]) <= 6) {
+                    var arrayImpar = [];
+                    var arrayPar = [];
+                    for (var index = 1; index <= arrayCedula.length - 1; index += 2) {
+                        if (index = 9) {
+                            arrayPar.push(parseInt(arrayCedula[index]));
+                        }
+                        arrayImpar.push(parseInt(arrayCedula[index - 1]));
+                    }
+                    var sumaImpar = 0;
+                    for (var index = 0; index < arrayImpar.length; index++) {
+                        var multImpar = arrayImpar[index] * 2;
+                        if (multImpar > 9) {
+                            sumaImpar += multImpar - 9;
+                        }
+                        else {
+                            sumaImpar += multImpar;
+                        }
+                    }
+                    var sumaPar = 0;
+                    for (var index = 0; index < arrayPar.length; index++) {
+                        sumaPar += arrayPar[index];
+                    }
+                    var digitoVerificador = (sumaPar + sumaImpar) % 10;
+                    console.log(arrayPar, arrayImpar);
+                    if (digitoVerificador == 0) {
+                        digitoVerificador = 0;
+                    }
+                    else {
+                        digitoVerificador = 10 - digitoVerificador;
+                    }
+                    if (digitoVerificador == parseInt(arrayCedula[arrayCedula.length - 1])) {
+                        valida = true;
+                    }
+                }
+            }
+        }
+        return valida;
+    };
     Cliente.prototype.modeloInterfaz = function () {
         return "<tr>\n        <td>" + this.cedula + "</td>\n        <td>" + this.nombres + "</td>\n        <td>" + this.direccion + "</td>\n        <td>" + this.telefono + "</td>\n        <td>" + this.email + "</td>\n        <td data-ced = \"" + this.cedula + "\"><i class=\"material-icons iconOperacion editar\">edit</i> <i class=\"red-text material-icons iconOperacion eliminar\">delete</i></td>\n      </tr>";
     };
@@ -264,7 +315,7 @@ function cargarClientes() {
         var telefono = document.getElementById("telefono").value.toString();
         var email = document.getElementById("email").value.toString();
         if (Vista.elementoHTMLConId("btnGuardar").dataset.proceso == "1") {
-            gestionador.guardar(new Cliente(cedula, nombres, direccion, telefono, email));
+            gestionador.guardar(cedula, nombres, direccion, telefono, email);
         }
         else {
             gestionador.editar(new Cliente(cedula, nombres, direccion, telefono, email));

@@ -1,25 +1,31 @@
 class Gestionador {
     private vista: Vista = new Vista("contenedorApp");
 
-    public guardar(cliente: Cliente):void{
-        fetch('./php/guardar.php',{
-            method:'POST',
-            body: cliente.json(),
-            headers:{
-                'Content-type': 'aplication/json'
-            }
-        }).then(resolve =>{ return resolve.json() })
-        .then(response => {
-            if(response.proceso){
-                this.mostrarNotificacion('exito', response.mensaje)
-                this.vista.mostrarEn("#datosClientes",cliente.modeloInterfaz());
-            }else {
-                this.mostrarNotificacion('error',response.mensaje);
-            }
-            Vista.elementoHTMLConId("datos").reset();
-        }).catch(error=>{
-            this.mostrarNotificacion('error',"No se puede acceder a servidor");
-        })
+    public guardar(cedula:string, nombres: string, direccion: string, telefono:string, email:string):void{
+        
+        if(Cliente.cedulaValida(cedula)){
+            let cliente : Cliente = new Cliente(cedula, nombres, direccion, telefono, email);
+            fetch('./php/guardar.php',{
+                method:'POST',
+                body: cliente.json(),
+                headers:{
+                    'Content-type': 'aplication/json'
+                }
+            }).then(resolve =>{ return resolve.json() })
+            .then(response => {
+                if(response.proceso){
+                    this.mostrarNotificacion('exito', response.mensaje)
+                    this.vista.mostrarEn("#datosClientes",cliente.modeloInterfaz());
+                }else {
+                    this.mostrarNotificacion('error',response.mensaje);
+                }
+                Vista.elementoHTMLConId("datos").reset();
+            }).catch(error=>{
+                this.mostrarNotificacion('error',"No se puede acceder a servidor");
+            })
+        }else{
+            this.mostrarNotificacion('error',"Cedula invalida");
+        }
     }
 
     private mostrarNotificacion(tipo : string, mensaje : string) :void{
@@ -196,6 +202,51 @@ class Cliente{
         this.email = email; 
     }
 
+    public static cedulaValida(cedula : string):boolean{
+        let arrayCedula:string[] = cedula.split("");
+        let valida = false;
+        if(arrayCedula.length == 10){
+            let codigoProvincia = parseInt(arrayCedula[0]) * 10 + parseInt(arrayCedula[1]);
+            if(codigoProvincia >= 1 && codigoProvincia <= 24){
+                if(parseInt(arrayCedula[2]) >= 0 && parseInt(arrayCedula[2]) <= 6){
+                    let arrayImpar = [];
+                    let arrayPar = [];
+                    for (let index = 1; index <= arrayCedula.length-1; index+= 2) {
+                        if(index = 9){
+                            arrayPar.push(parseInt(arrayCedula[index]));
+                        }
+                        arrayImpar.push(parseInt(arrayCedula[index-1]));
+                    }
+                    let sumaImpar = 0;
+                    for (let index = 0; index < arrayImpar.length; index++) {
+                        let multImpar = arrayImpar[index]*2
+                        if( multImpar > 9){
+                            sumaImpar += multImpar - 9;
+                        }else{
+                            sumaImpar += multImpar
+                        }
+                    }
+                    let sumaPar = 0;
+                    for (let index = 0; index < arrayPar.length; index++) {
+                        sumaPar += arrayPar[index];
+                    }
+                    let digitoVerificador = (sumaPar+sumaImpar)%10;
+                    console.log(arrayPar , arrayImpar);
+                    if(digitoVerificador == 0){
+                        digitoVerificador = 0;
+                    }else{
+                        digitoVerificador = 10 - digitoVerificador;
+                    }
+                    
+                    if(digitoVerificador == parseInt(arrayCedula[arrayCedula.length -1])){
+                        valida = true;
+                    }
+                }
+            }
+        }
+        return valida;
+    }
+
     public modeloInterfaz(): string{
         return `<tr>
         <td>${this.cedula}</td>
@@ -315,7 +366,7 @@ function cargarClientes(){
         let telefono: string = document.getElementById("telefono").value.toString();
         let email: string = document.getElementById("email").value.toString();
         if(Vista.elementoHTMLConId("btnGuardar").dataset.proceso == "1"){
-            gestionador.guardar(new Cliente(cedula, nombres, direccion, telefono, email));
+            gestionador.guardar(cedula, nombres, direccion, telefono, email);
         }else{
             gestionador.editar(new Cliente(cedula,nombres, direccion,telefono,email));
         }
