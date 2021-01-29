@@ -181,7 +181,7 @@ class Gestionador {
                     cliente.telefono, cliente.email).modeloInterfaz()); 
             });
         }).catch(error=>{
-            this.mostrarNotificacion("error","error conexion con servidor")
+            this.mostrarNotificacion("error","error conexion con servidor");
         })
     }
 }
